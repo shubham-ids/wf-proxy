@@ -1,0 +1,101 @@
+server {
+    server_name ms.iflx.tv;
+
+    root /var/www/ms.iflx.tv;
+    index index.html;
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/ms.iflx.tv/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/ms.iflx.tv/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    # Reverse proxy for MP4/m3u8/ts streaming
+    location / {
+        
+        resolver 8.8.8.8 1.1.1.1 ipv6=off;
+
+        proxy_pass https://madplay.site;
+
+        proxy_ssl_server_name on;
+        proxy_ssl_name madplay.site;
+
+        proxy_set_header Host madplay.site;
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_set_header Range $http_range;
+        proxy_set_header If-Range $http_if_range;
+
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+
+
+        # Enable content substitution
+        sub_filter_once off;  # Apply the substitution globally, not just the first occurrence
+        sub_filter 'madplay.site' 'ms.iflx.tv';  # Replace 'madplay.site' with 'ms.watchflixad.com'
+        
+        # Enable sub_filter for all content types (this works for HTML, m3u8, mp4, etc.)
+        sub_filter_types *;
+
+
+
+        # proxy_ssl_server_name on;
+        # proxy_ssl_verify off;
+
+
+        # CORS headers
+        # add_header Access-Control-Allow-Origin *;
+        #  add_header Access-Control-Allow-Methods "GET, OPTIONS";
+        # add_header Access-Control-Allow-Headers "*";
+
+        # CORS headers
+        set $cors "";
+        if ($http_origin ~* "\.wflx\.st$") {
+            set $cors $http_origin;
+        }
+        if ($http_origin ~* "\.watchflixad\.com$") {
+            set $cors $http_origin;
+        }
+        if ($http_origin ~* "\.watchflx\.tv$") {
+            set $cors $http_origin;
+        }
+        if ($http_origin ~* "\.iflx\.tv$") {
+            set $cors $http_origin;
+        }
+
+        # Apply CORS headers if the origin is allowed
+        if ($cors != "") {
+            add_header Access-Control-Allow-Origin $cors;
+            add_header Access-Control-Allow-Methods "GET, OPTIONS";
+            add_header Access-Control-Allow-Headers "*";
+        }
+        
+        # Handle OPTIONS preflight request (CORS)
+        if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin $cors;
+            add_header Access-Control-Allow-Methods "GET, OPTIONS";
+            add_header Access-Control-Allow-Headers "*";
+            return 204;
+        }
+
+    }
+
+
+}
+server {
+    if ($host = ms.iflx.tv) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name ms.iflx.tv;
+    return 404; # managed by Certbot
+}
