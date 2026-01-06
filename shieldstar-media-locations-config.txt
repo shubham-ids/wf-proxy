@@ -1,0 +1,96 @@
+root@s27707:~# cat /etc/nginx/snippets/media-locations.conf
+root /var/www/html;
+
+# Add index.php to the list if you are using PHP
+index index.php index.html index.htm index.nginx-debian.html;
+
+server_name _;
+
+location / {
+    # First attempt to serve request as file, then
+    # as directory, then fall back to displaying a 404.
+    try_files $uri $uri/ =404;
+}
+
+
+location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+
+    fastcgi_read_timeout 300;
+    fastcgi_send_timeout 300;
+}
+
+location ~ /\.ht {
+    deny all;
+}
+
+location ~ \.(m3u8|ts|mp4)$ {
+
+    # IGNORE conditional requests completely
+    etag off;
+    if_modified_since off;
+
+    # Never cache
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    add_header Pragma "no-cache";
+    add_header Expires 0;
+
+    add_header Accept-Ranges bytes;
+
+
+    types {
+        application/vnd.apple.mpegurl m3u8;
+        video/mp2t ts;
+        video/mp4 mp4;
+    }
+
+
+    # TODO - Remove livepush.io ,this is added for testing only
+    set $cors_origin "";
+    if ($http_origin ~* ^https?://([a-z0-9-]+\.)?(watchflixad\.com|wflx\.st|iflx\.tv|watchflx\.tv|livepush\.io)$) {
+        set $cors_origin $http_origin;
+    }
+
+    add_header Cache-Control no-cache;
+    add_header Access-Control-Allow-Origin "$cors_origin" always;
+    add_header Access-Control-Allow-Methods 'GET, OPTIONS';
+    add_header Access-Control-Allow-Headers '*';
+}
+
+
+# pass PHP scripts to FastCGI server
+#
+#location ~ \.php$ {
+#	include snippets/fastcgi-php.conf;
+#
+#	# With php-fpm (or other unix sockets):
+#	fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+#	# With php-cgi (or other tcp sockets):
+#	fastcgi_pass 127.0.0.1:9000;
+#}
+
+# deny access to .htaccess files, if Apache's document root
+# concurs with nginx's one
+#
+#location ~ /\.ht {
+#	deny all;
+#}
+
+
+location /phpmyadmin {
+    root /usr/share/;
+    index index.php index.html index.htm;
+
+    location ~ ^/phpmyadmin/(.+\.php)$ {
+        root /usr/share/;
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;  # adjust PHP version
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+        root /usr/share/;
+    }
+}
