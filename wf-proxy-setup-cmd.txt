@@ -1,0 +1,89 @@
+Proxy setup in server
+
+
+1. Update packages and install Nginx
+apt update                 
+apt install nginx -y      Installs the Nginx web server without asking for confirmation.
+systemctl status nginx  Checks and displays the current status of the Nginx service.
+
+
+2. Install Certbot with Nginx plugin
+sudo apt install certbot python3-certbot-nginx -y    Installs Certbot and its Nginx plugin to enable SSL certificate generation and auto-configuration for Nginx.
+
+3. Create Nginx Configuration File
+Create the config file:
+Create  the Nginx configuration file for the domain
+sudo nano /etc/nginx/sites-available/domain_name
+Exp: sudo nano /etc/nginx/sites-available/movies.watchflixad.com
+
+Add this content inside the file:
+server {
+    listen 80;
+    server_name domain_name;
+
+    root /var/www/domain_name;
+    index index.html;
+}
+
+Exp: 
+server {
+   listen 80;
+   server_name movies.watchflixad.com;
+
+
+   root /var/www/movies.watchflixad.com;
+   index index.html;
+}
+
+After adding the config, save and exit the editor.
+
+4. Create Web Root and Test File
+
+Create the website directory and assign proper ownership
+sudo mkdir -p /var/www/domain_name
+Exp: sudo mkdir -p /var/www/movies.watchflixad.com
+
+sudo chown -R $USER:$USER /var/www/domain_name
+Exp: sudo chown -R $USER:$USER /var/www/movies.watchflixad.com
+
+Add a test file:
+echo "Hello SSL" > /var/www/domain_name/index.html
+Add a simple test page to verify configuration.
+
+5. Enable Configuration and Reload Nginx
+
+Enable the Nginx config:
+sudo ln -s /etc/nginx/sites-available/domain_name /etc/nginx/sites-enabled/
+Purpose: Activates the site configuration by creating a symbolic link.
+Exp: sudo ln -s /etc/nginx/sites-available/movies.watchflixad.com /etc/nginx/sites-enabled/
+
+Test and reload Nginx:
+sudo nginx -t
+sudo systemctl reload nginx
+Purpose: Check for configuration errors and apply changes.
+
+6. Install SSL Certificate with Certbot
+
+sudo certbot --nginx -d domain_name
+Purpose: Generate and install an SSL certificate for your domain automatically configuring Nginx.
+
+Exp: sudo certbot --nginx -d movies.watchflixad.com
+
+Great — your domain is live.
+ Now to proxy all requests from:
+https://movies.watchflixad.com ➝ https://shieldedstar.com
+7. Edit your SSL server block
+Open your file:
+sudo nano /etc/nginx/sites-available/domain_name
+Exp: sudo nano /etc/nginx/sites-available/movies.watchflixad.com
+
+
+
+Check Nginx Logs
+
+tail -f /var/log/nginx/error.log
+
+
+Test and reload Nginx:
+sudo nginx -t
+sudo systemctl reload nginx
