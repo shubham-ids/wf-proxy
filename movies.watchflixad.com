@@ -1,21 +1,3 @@
-# http {} block
-map $http_origin $sl_token {
-    "~staging\.watchflixad\.com"  $arg_token;
-    default          "";
-}
-
-map $http_origin $sl_expiry {
-    "~staging\.watchflixad\.com"  $arg_e;
-    default          "";
-}
-
-# Override $secure_link result for non-staging hosts — force it to "1" (valid)
-map $http_origin $force_secure_link {
-    "~staging\.watchflixad\.com"  "";   # empty = don't force, use real $secure_link value
-    default          "1";  # force valid for all other hosts
-}
-
-
 server {
     server_name movies.watchflixad.com;
 
@@ -28,46 +10,8 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
-
-    location /debug-time {
-        return 200 "nginx_time=$time_local unix=$msec\n";
-    }
-
     # Reverse proxy for MP4/m3u8/ts streaming
     location ~* \.(mp4|m3u8|ts)$ {
-        
-
-        # ── Secure Link (staging only) ────────────────────────────────────────────
-        secure_link $sl_token,$sl_expiry;
-        secure_link_md5 "$secure_link_expires$uri my_secret_key";
-
-        # For non-staging, $force_secure_link = "1" so these ifs are never triggered
-        set $effective_secure_link $secure_link;
-
-        add_header X-Debug-FORCE-Link $force_secure_link always;
-        add_header X-Debug-http-rogina-Link $http_origin always;
-        add_header X-Debug-http-secure-md5-Link "$secure_link_expires$uri my_secret_key" always;
-        add_header X-Debug-http-secure-sl_expiry "$sl_expiry" always;
-        add_header X-Now $msec always;
-        add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
-        add_header X-Debug-Uri $uri always;
-        add_header X-Debug-http-secure-secure_link "$secure_link" always;
-        add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
-
-
-        if ($force_secure_link = "1") {
-            set $effective_secure_link "1";
-        }
-
-        if ($effective_secure_link = "") {
-            return 403;
-        }
-
-        if ($effective_secure_link = "0") {
-            return 410;
-        }
-        # ── End Secure Link ───────────────────────────────────────────────────────
-
 
         # proxy_pass https://83.149.92.247;        
         # resolver 8.8.8.8 ipv6=off;
