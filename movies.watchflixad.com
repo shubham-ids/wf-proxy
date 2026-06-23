@@ -38,21 +38,35 @@ server {
         
 
         # ── Secure Link (staging only) ────────────────────────────────────────────
+        set $folder_token_path "";   # explicit default
+
+        if ($uri ~* "^(/.+/original)") {
+          set $folder_token_path $1;
+        }
+
+        if ($folder_token_path = "") {
+            # skip token validation or return 403
+            # return 403;
+        }
+
         secure_link $sl_token,$sl_expiry;
-        secure_link_md5 "$secure_link_expires$uri my_secret_key";
+
+        set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
+
+        secure_link_md5 "$secure_link_expires$folder_token_path $secretKey";
 
         # For non-staging, $force_secure_link = "1" so these ifs are never triggered
         set $effective_secure_link $secure_link;
 
-        add_header X-Debug-FORCE-Link $force_secure_link always;
-        add_header X-Debug-http-rogina-Link $http_origin always;
-        add_header X-Debug-http-secure-md5-Link "$secure_link_expires$uri my_secret_key" always;
-        add_header X-Debug-http-secure-sl_expiry "$sl_expiry" always;
-        add_header X-Now $msec always;
-        add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
-        add_header X-Debug-Uri $uri always;
-        add_header X-Debug-http-secure-secure_link "$secure_link" always;
-        add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
+        # add_header X-Debug-FORCE-Link $force_secure_link always;
+        # add_header X-Debug-http-rogina-Link $http_origin always;
+        # add_header X-Debug-http-secure-md5-Link "$secure_link_expires$uri $secretKey" always;
+        # add_header X-Debug-http-secure-sl_expiry "$sl_expiry" always;
+        # add_header X-Now $msec always;
+        # add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
+        # add_header X-Debug-Uri $uri always;
+        # add_header X-Debug-http-secure-secure_link "$secure_link" always;
+        # add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
 
 
         if ($force_secure_link = "1") {
