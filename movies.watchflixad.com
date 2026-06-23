@@ -76,7 +76,7 @@ server {
         #     # return 403;
         # }
 
-        secure_link $sl_token,$sl_expiry;
+        secure_link $arg_token,$arg_e;
 
         set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
 
@@ -88,19 +88,23 @@ server {
         set $effective_secure_link $secure_link;
 
         
-        # add_header X-Debug-FORCE-Link $force_secure_link always;
-        # add_header X-Debug-http-rogina-Link $http_origin always;
-        # add_header X-Debug-http-secure-md5-Link "$secure_link_expires$uri $secretKey" always;
-        # add_header X-Debug-http-secure-sl_expiry "$sl_expiry" always;
-        # add_header X-Now $msec always;
-        # add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
-        # add_header X-Debug-Uri $uri always;
-        # add_header X-Debug-http-secure-secure_link "$secure_link" always;
-        # add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
+        add_header X-Debug-FORCE-Link $force_secure_link always;
+        add_header X-Debug-upid "ok $arg_upid" always;
+        add_header X-Debug-args "$args" always;
+        add_header X-Debug-e $arg_e always;
+        add_header X-Debug-token "ok $arg_token" always;
+        add_header X-Debug-http-secure-secure_linko "linko $secure_link" always;
+        add_header X-Debug-http-rogina-Link $http_origin always;
+        add_header X-Debug-http-secure-md5-Link "$secure_link_expires$secure_base_path $arg_upid $secretKey" always;
+        add_header X-Debug-http-secure-arg_e "$arg_e" always;
+         add_header X-Now $msec always;
+         add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
+         add_header X-Debug-Uri $uri always;
+         add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
 
 
         if ($force_secure_link = "1") {
-            set $effective_secure_link "1";
+            # set $effective_secure_link "1";
         }
 
         if ($effective_secure_link = "") {
