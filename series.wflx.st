@@ -1,3 +1,15 @@
+# Step 2: Extract base path per type
+map $uri $secure_base_path {
+    # Everything up to and including /hls/
+    ~^(?P<base>.+/hls/)     $base;
+
+    # Everything up to and including /original.mp4
+    ~^(?P<base>.+/original\.mp4)    $base;
+
+    # Fallback — use full URI
+    default     $uri;
+}
+
 server {
     server_name series.wflx.st;
 
@@ -12,6 +24,22 @@ server {
 
     # Reverse proxy for MP4/m3u8/ts streaming
     location ~* \.(mp4|m3u8|ts)$ {
+
+        # ── Secure Link (staging only) ────────────────────────────────────────────
+        secure_link $arg_token,$arg_e;
+
+        set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
+        secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid $secretKey";
+    
+        if ($secure_link = "") {
+            return 403;
+        }
+
+        if ($secure_link = "0") {
+            return 410;
+        }
+        # ── End Secure Link ───────────────────────────────────────────────────────
+
         # proxy_pass https://series.shieldedstar.com;
         # proxy_pass http://83.149.92.248;
 
@@ -58,6 +86,12 @@ server {
         # add_header Access-Control-Allow-Headers "*";
 
         proxy_pass http://83.149.92.248;
+
+        # Adding token into index.m3u8 and ts files
+        sub_filter_types application/vnd.apple.mpegurl;
+        sub_filter_once off;
+        sub_filter '.m3u8' '.m3u8?$args';
+        sub_filter '.ts'   '.ts?$args';
 
     }
 

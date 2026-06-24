@@ -93,6 +93,12 @@ server {
         # add_header Access-Control-Allow-Origin *;
         # add_header Access-Control-Allow-Methods "GET, OPTIONS";
         # add_header Access-Control-Allow-Headers "*";
+
+        # Adding token into index.m3u8 and ts files
+        sub_filter_types application/vnd.apple.mpegurl;
+        sub_filter_once off;
+        sub_filter '.m3u8' '.m3u8?$args';
+        sub_filter '.ts'   '.ts?$args';
     }
 
 }
