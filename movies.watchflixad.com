@@ -1,28 +1,3 @@
-# http {} block
-map $http_origin $sl_token {
-    "~staging\.watchflixad\.com"  $arg_token;
-    default          "";
-}
-
-map $http_origin $sl_expiry {
-    "~staging\.watchflixad\.com"  $arg_e;
-    default          "";
-}
-
-# Override $secure_link result for non-staging hosts — force it to "1" (valid)
-map $http_origin $force_secure_link {
-    "~staging\.watchflixad\.com"  "";   # empty = don't force, use real $secure_link value
-    default          "1";  # force valid for all other hosts
-}
-
-
-# Step 1: Detect URL type
-# map $uri $url_type {
-#    ~^(?P<base>.+)/hls/     "hls";
-#    ~*/original\.mp4        "original";
-#    default                 "other";
-# }
-
 # Step 2: Extract base path per type
 map $uri $secure_base_path {
     # Everything up to and including /hls/
@@ -48,70 +23,21 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
-
-    # location /debug-time {
-    #    return 200 "nginx_time=$time_local unix=$msec\n";
-    # }
-
     # Reverse proxy for MP4/m3u8/ts streaming
     location ~* \.(mp4|m3u8|ts)$ {
-
-
-        # add_header X-Debug-secure_base_path $secure_base_path always;
         
 
         # ── Secure Link (staging only) ────────────────────────────────────────────
-        # set $folder_token_path "";   # explicit default
-
-        # if ($uri ~* "^(/.+/original)") {
-        #  set $folder_token_path $1;
-        # }
-
-        # if ($folder_token_path != "") {
-        #     # variable has a value
-        # }
-
-        # if ($folder_token_path = "") {
-        #     # skip token validation or return 403
-        #     # return 403;
-        # }
-
         secure_link $arg_token,$arg_e;
 
         set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
-
-        # secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid$remote_addr $secretKey";
-        # secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid$arg___e $secretKey";
         secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid $secretKey";
-
-        # For non-staging, $force_secure_link = "1" so these ifs are never triggered
-        set $effective_secure_link $secure_link;
-
-        
-        add_header X-Debug-FORCE-Link $force_secure_link always;
-        add_header X-Debug-upid "ok $arg_upid" always;
-        add_header X-Debug-args "$args" always;
-        add_header X-Debug-e $arg_e always;
-        add_header X-Debug-token "ok $arg_token" always;
-        add_header X-Debug-http-secure-secure_linko "linko $secure_link" always;
-        add_header X-Debug-http-rogina-Link $http_origin always;
-        add_header X-Debug-http-secure-md5-Link "$secure_link_expires$secure_base_path $arg_upid $secretKey" always;
-        add_header X-Debug-http-secure-arg_e "$arg_e" always;
-         add_header X-Now $msec always;
-         add_header X-Debug-http-secure-secure_link_expires "$secure_link_expires" always;
-         add_header X-Debug-Uri $uri always;
-         add_header X-Debug-http-secure-effective_secure_link "$effective_secure_link" always;
-
-
-        if ($force_secure_link = "1") {
-            # set $effective_secure_link "1";
-        }
-
-        if ($effective_secure_link = "") {
+    
+        if ($secure_link = "") {
             return 403;
         }
 
-        if ($effective_secure_link = "0") {
+        if ($secure_link = "0") {
             return 410;
         }
         # ── End Secure Link ───────────────────────────────────────────────────────
