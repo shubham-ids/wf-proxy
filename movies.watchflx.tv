@@ -10,7 +10,14 @@ map $uri $secure_base_path {
     default     $uri;
 }
 
+
+lua_shared_dict bw_counters 64m;  # shared across workers
+
+
+# log_format bw_debug '$remote_addr - $arg_token - $body_bytes_sent - $request';
+
 server {
+
     server_name movies.watchflx.tv;
 
     root /var/www/movies.watchflx.tv;
@@ -22,78 +29,50 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
+
+    location /lua {
+        content_by_lua_block {
+            ngx.header.content_type = "text/plain"
+            ngx.say("Lua is working")
+        }
+    }
+
+    location /redis {
+        content_by_lua_block {
+            ngx.header.content_type = "text/plain"
+            local redis = require "resty.redis"
+
+            local red = redis:new()
+            red:set_timeout(1000)
+
+            local ok, err = red:connect("127.0.0.1", 6379)
+
+            if not ok then
+                ngx.say(err)
+                return
+            end
+
+            local res, err = red:get("test")
+            ngx.say(res)
+        }
+    }
+
     # Reverse proxy for MP4/m3u8/ts streaming
-    location ~* \.(mp4|m3u8|ts)$ {
+    location ~* \.(m3u8|ts)$ {
+      include /etc/nginx/snippets/proxy-common.conf;
+      
+      # proxy_limit_rate 2m;
+      limit_rate 1m;      
+    }
 
-        # ── Secure Link (staging only) ────────────────────────────────────────────
-        secure_link $arg_token,$arg_e;
+    location ~* \.(mp4)$ {
 
-        set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
-        secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid $secretKey";
-    
-        if ($secure_link = "") {
-            return 403;
-        }
+      include /etc/nginx/snippets/proxy-common.conf;
 
-        if ($secure_link = "0") {
-            return 410;
-        }
-        # ── End Secure Link ───────────────────────────────────────────────────────
-        
-        # proxy_pass https://83.149.92.247;        
-        # resolver 8.8.8.8 ipv6=off;
-        # set $upstream "shieldedstar.com";
-        # proxy_pass https://$upstream;
+      proxy_buffering off;
+      proxy_request_buffering off;
 
 
-        # proxy_set_header Host shieldedstar.com;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-
-        proxy_set_header Range $http_range;
-        proxy_set_header If-Range $http_if_range;
-
-        proxy_buffering off;
-        proxy_request_buffering off;
-
-
-        # proxy_ssl_server_name on;
-        # proxy_ssl_verify off;
-
-        # Remove any existing CORS headers from upstream
-        proxy_hide_header Access-Control-Allow-Origin;
-        proxy_hide_header Access-Control-Allow-Methods;
-        proxy_hide_header Access-Control-Allow-Headers;
-
-
-        set $cors "";
-        if ($http_origin ~* "^https?://([a-z0-9-]+\.)?watchflx\.com$") {
-          set $cors $http_origin;
-        }
-
-        add_header Access-Control-Allow-Origin "https://watchflx.tv" always;
-        # add_header Access-Control-Allow-Origin $cors always;
-        add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
-        add_header Access-Control-Allow-Headers "*" always;
-
-
-        proxy_pass https://83.149.92.247;
-
-        # CORS headers
-        # add_header Access-Control-Allow-Origin *;
-        # add_header Access-Control-Allow-Methods "GET, OPTIONS";
-        # add_header Access-Control-Allow-Headers "*";
-
-        # Adding token into index.m3u8 and ts files
-        sub_filter_types application/vnd.apple.mpegurl;
-        sub_filter_once off;
-        sub_filter '.m3u8' '.m3u8?$args';
-        sub_filter '.ts'   '.ts?$args';
     }
 
 }
