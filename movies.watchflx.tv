@@ -31,6 +31,10 @@ server {
 
 
     location /lua {
+
+        allow 193.27.90.77;
+        deny all;
+
         content_by_lua_block {
             ngx.header.content_type = "text/plain"
             ngx.say("Lua is working")
@@ -38,6 +42,10 @@ server {
     }
 
     location /redis {
+
+        allow 193.27.90.77;
+        deny all;
+
         content_by_lua_block {
             ngx.header.content_type = "text/plain"
             local redis = require "resty.redis"
@@ -57,12 +65,28 @@ server {
         }
     }
 
+    location = /internal/bandwidth-stats {
+        allow 193.27.90.77;
+        deny all;
+
+        content_by_lua_file /etc/nginx/lua/bandwidth_stats.lua;
+    }
+
     # Reverse proxy for MP4/m3u8/ts streaming
     location ~* \.(m3u8|ts)$ {
+
+      access_by_lua_file /etc/nginx/lua/bw_check.lua;
+
+     
       include /etc/nginx/snippets/proxy-common.conf;
       
+      log_by_lua_file /etc/nginx/lua/bw_record.lua;  # runs AFTER response
+
+      access_log /var/log/nginx/bw_debug.log bw_debug;
+
       # proxy_limit_rate 2m;
-      limit_rate 1m;      
+      # After verification we will  have capped at 1m;
+      limit_rate 1536k; # 1.5 MiB/s    
     }
 
     location ~* \.(mp4)$ {
