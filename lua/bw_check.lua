@@ -1,10 +1,17 @@
 -- /etc/nginx/lua/bw_check.lua
 -- local key = ngx.var.args_upid or ngx.var.remote_addr
-local key = ngx.var.arg_upid
+local upid = ngx.var.arg_upid
+local today = os.date("%Y-%m-%d")   -- e.g. 2026-07-02
+local host = ngx.var.host
+
 local limit = 30 * 1024 * 1024 * 1024  -- 30 GB
+local key = host .. ":" .. today .. ":" .. upid
+
 if not key or key == "" then
     -- return ngx.exit(ngx.HTTP_FORBIDDEN)
 end
+
+
 
 local bw = ngx.shared.bw_counters
 local used = bw:get(key) or 0

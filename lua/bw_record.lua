@@ -1,6 +1,7 @@
 -- /etc/nginx/lua/bw_record.lua
-local key = ngx.var.arg_upid
-
+local upid = ngx.var.arg_upid
+local today = os.date("%Y-%m-%d")   -- e.g. 2026-07-02
+local host = ngx.var.host
 
 -- local bytes = tonumber(ngx.var.body_bytes_sent) or 0
 local bytes = tonumber(ngx.var.body_bytes_sent)
@@ -8,10 +9,10 @@ if not bytes then
     bytes = tonumber(ngx.var.upstream_bytes_received) or 0
 end
 
-
+local key = host .. ":" .. today .. ":" .. upid
 
 local bw = ngx.shared.bw_counters
-bw:incr(key, bytes, 0)
+bw:incr(key, bytes, 0, 7 * 24 * 60 * 60);
 
 -- ngx.header["X-Second-ngx-a"] = tostring(ngx.var.upstream_bytes_received)
 -- ngx.header["X-Second-ngx-b"] = tostring(ngx.var.upstream_http_content_length)

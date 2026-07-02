@@ -11,9 +11,6 @@ map $uri $secure_base_path {
 }
 
 
-lua_shared_dict bw_counters 64m;  # shared across workers
-
-
 # log_format bw_debug '$remote_addr - $arg_token - $body_bytes_sent - $request';
 
 server {
@@ -72,32 +69,9 @@ server {
         content_by_lua_file /etc/nginx/lua/bandwidth_stats.lua;
     }
 
-    # Reverse proxy for MP4/m3u8/ts streaming
-    location ~* \.(m3u8|ts)$ {
+    set $allowed_cors_domain "https://watchflx.tv";
 
-      access_by_lua_file /etc/nginx/lua/bw_check.lua;
-
-     
-      include /etc/nginx/snippets/proxy-common.conf;
-      
-      log_by_lua_file /etc/nginx/lua/bw_record.lua;  # runs AFTER response
-
-      access_log /var/log/nginx/bw_debug.log bw_debug;
-
-      # proxy_limit_rate 2m;
-      # After verification we will  have capped at 1m;
-      limit_rate 1536k; # 1.5 MiB/s    
-    }
-
-    location ~* \.(mp4)$ {
-
-      include /etc/nginx/snippets/proxy-common.conf;
-
-      proxy_buffering off;
-      proxy_request_buffering off;
-
-
-    }
+    include /etc/nginx/snippets/streaming-common.conf;
 
 }
 server {
