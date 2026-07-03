@@ -24,7 +24,7 @@ server {
 
 
     set $allowed_cors_domain "https://wflx.st";
-    include /etc/nginx/snippets/streaming-common.conf;
+    include /etc/nginx/snippets/proxy-movies-common.conf;
 
 }
 server {

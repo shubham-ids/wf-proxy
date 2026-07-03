@@ -41,60 +41,71 @@ server {
 	root /var/www/html;
 
 	# Add index.php to the list if you are using PHP
-	index index.html index.htm index.nginx-debian.html;
+	# index index.html index.htm index.nginx-debian.html;
 
 	server_name _;
 
+
+	# location / {
+	# 	# First attempt to serve request as file, then
+	# 	# as directory, then fall back to displaying a 404.
+	# 	try_files $uri $uri/ =404;
+	# }
+
+
+	# location /movies/ {
+
+	# 	# Root directory for all MP4 files
+	# 	root /var/www/html;
+
+	# 	# Enable MP4 streaming + seeking
+	# 	mp4;
+	# 	mp4_buffer_size 1m;
+	# 	mp4_max_buffer_size 5m;
+
+	# 	# MIME type
+	# 	types {
+	# 		video/mp4 mp4;
+	# 	}
+
+	# 	# Allow browser seeking (Range requests)
+	# 	add_header Accept-Ranges bytes;
+
+	# 	# CORS
+	# 	add_header Access-Control-Allow-Origin *;
+	# 	add_header Access-Control-Allow-Methods 'GET, HEAD, OPTIONS';
+	# 	add_header Access-Control-Allow-Headers 'Range';
+
+	# 	# Stream-friendly cache headers
+	# 	add_header Cache-Control "no-store, no-cache, must-revalidate";
+
+	# 	# Try files: required for subfolders
+	# 	try_files $uri =404;
+
+	# 	# Performance tweaks
+	# 	# sendfile on;
+	# 	# aio on;
+	# 	# directio 4m;
+	# 	# output_buffers 1 2m;
+	# }
+
+
+	location ~ ^/(|hls_watching|proxy_log_export)\.php$ {
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		fastcgi_pass unix:/run/php/php-fpm.sock;
+	}
+
 	location / {
-		# First attempt to serve request as file, then
-		# as directory, then fall back to displaying a 404.
-		try_files $uri $uri/ =404;
+		default_type text/plain;
+		return 404 "Not Found";
 	}
 
-
-	location /movies/ {
-
-		# Root directory for all MP4 files
-		root /var/www/html;
-
-		# Enable MP4 streaming + seeking
-		mp4;
-		mp4_buffer_size 1m;
-		mp4_max_buffer_size 5m;
-
-		# MIME type
-		types {
-			video/mp4 mp4;
-		}
-
-		# Allow browser seeking (Range requests)
-		add_header Accept-Ranges bytes;
-
-		# CORS
-		add_header Access-Control-Allow-Origin *;
-		add_header Access-Control-Allow-Methods 'GET, HEAD, OPTIONS';
-		add_header Access-Control-Allow-Headers 'Range';
-
-		# Stream-friendly cache headers
-		add_header Cache-Control "no-store, no-cache, must-revalidate";
-
-		# Try files: required for subfolders
-		try_files $uri =404;
-
-		# Performance tweaks
-		# sendfile on;
-		# aio on;
-		# directio 4m;
-		# output_buffers 1 2m;
-	}
-
-
-
-	location ~ \.php$ {
-			include fastcgi_params;
-			fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-			fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-	}
+	# location ~ \.php$ {
+	# 	include fastcgi_params;
+	# 	fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+	# 	fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+	# }
 
 
 	# pass PHP scripts to FastCGI server

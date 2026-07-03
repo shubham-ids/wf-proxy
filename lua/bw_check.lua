@@ -18,6 +18,7 @@ local used = bw:get(key) or 0
 
 
 -- if used > limit and ngx.var.arg_token == 'yri2KZXKARh9TtGz-JwFbA' then
-if used > limit and ngx.var.arg_upid == '4ba1ca0fac1f054be9b99e55575fe1e4' then
+-- if used > limit and ngx.var.arg_upid == '4ba1ca0fac1f054be9b99e55575fe1e4' then
+if used > limit then
     ngx.exit(403)
 end

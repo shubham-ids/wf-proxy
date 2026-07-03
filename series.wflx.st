@@ -22,78 +22,8 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
-    # Reverse proxy for MP4/m3u8/ts streaming
-    location ~* \.(mp4|m3u8|ts)$ {
-
-        # ── Secure Link (staging only) ────────────────────────────────────────────
-        secure_link $arg_token,$arg_e;
-
-        set $secretKey "a9f3c7d1e8b5f2k4m6n8p1q3r5s7t9v2";
-        secure_link_md5 "$secure_link_expires$secure_base_path $arg_upid $secretKey";
-    
-        if ($secure_link = "") {
-            return 403;
-        }
-
-        if ($secure_link = "0") {
-            return 410;
-        }
-        # ── End Secure Link ───────────────────────────────────────────────────────
-
-        # proxy_pass https://series.shieldedstar.com;
-        # proxy_pass http://83.149.92.248;
-
-        # proxy_set_header Host series.shieldedstar.com;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-
-        proxy_set_header Range $http_range;
-        proxy_set_header If-Range $http_if_range;
-
-        proxy_buffering off;
-        proxy_request_buffering off;
-
-        # Remove any existing CORS headers from upstream
-        proxy_hide_header Access-Control-Allow-Origin;
-        proxy_hide_header Access-Control-Allow-Methods;
-        proxy_hide_header Access-Control-Allow-Headers;
-
-
-        # set $cors "";
-        # if ($http_origin ~* "^https?://([a-z0-9-]+\.)?wflx\.st$") {
-        #   set $cors $http_origin;
-        # }
-
-        
-        # Debug header — shows the value of $cors
-        # add_header X-Debug-CORS "$cors" always;
-        # add_header Access-Control-Allow-Origin $cors always;
-        
-        # Origin is not present in Chrome request, so we can fallback to referral
-        # But adding static address
-        add_header Access-Control-Allow-Origin "https://wflx.st" always;
-        add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
-        add_header Access-Control-Allow-Headers "*" always;
-
-        # CORS headers
-        # add_header Access-Control-Allow-Origin *;
-        # add_header Access-Control-Allow-Methods "GET, OPTIONS";
-        # add_header Access-Control-Allow-Headers "*";
-
-        proxy_pass http://83.149.92.248;
-
-        # Adding token into index.m3u8 and ts files
-        sub_filter_types application/vnd.apple.mpegurl;
-        sub_filter_once off;
-        sub_filter '.m3u8' '.m3u8?$args';
-        sub_filter '.ts'   '.ts?$args';
-
-    }
+    set $allowed_cors_domain "https://wflx.st";
+    include /etc/nginx/snippets/proxy-series-common.conf;
 
 }
 server {

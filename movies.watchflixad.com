@@ -24,7 +24,7 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
     set $allowed_cors_domain "https://watchflixad.com";
-    include /etc/nginx/snippets/streaming-common.conf;
+    include /etc/nginx/snippets/proxy-movies-common.conf;
 
 }
 server {
